@@ -40,8 +40,6 @@ The upward chevron beneath the grid reveals:
 
 Choose **Tempo** to adjust the BPM at the cursor in increments of five. A tempo marker is rendered in the narrow strip beneath its cell. The first cell defaults to `90`. If a marker is adjusted back to the previous tempo, the redundant marker removes itself automatically.
 
-Sequence steps use the faster timing of the original Android behavior: each cell advances at one-eighth of the conventional quarter-note interval for the displayed BPM.
-
 ## Navigation
 
 The leading toolbar menu is a native floating menu with:
