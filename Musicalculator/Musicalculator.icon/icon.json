@@ -1,0 +1,109 @@
+{
+  "fill" : {
+    "automatic-gradient" : "extended-gray:0.08604,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "music.note.png",
+          "name" : "music.note",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              259,
+              253.75
+            ]
+          }
+        },
+        {
+          "image-name" : "plus.png",
+          "name" : "plus",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              -255.5,
+              255.5
+            ]
+          }
+        },
+        {
+          "image-name" : "multiply.png",
+          "name" : "multiply",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              257.25,
+              -257.25
+            ]
+          }
+        },
+        {
+          "image-name" : "minus.png",
+          "name" : "minus",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              -255.5,
+              -257.25
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "fill" : {
+            "automatic-gradient" : "srgb:1.00000,0.00000,0.09020,1.00000"
+          },
+          "image-name" : "svgviewer-output.svg",
+          "name" : "svgviewer-output",
+          "position" : {
+            "scale" : 1.57,
+            "translation-in-points" : [
+              365.75,
+              364
+            ]
+          }
+        },
+        {
+          "fill" : {
+            "automatic-gradient" : "extended-gray:0.42880,1.00000"
+          },
+          "image-name" : "svgviewer-output.svg",
+          "name" : "svgviewer-output",
+          "position" : {
+            "scale" : 1.57,
+            "translation-in-points" : [
+              -364,
+              -365.75
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
