@@ -401,7 +401,7 @@ struct ContentView: View {
     }
 
     private func adjustTempo(by amount: Int) {
-        let newTempo = min(max(tempoAtCursor + amount, 30), 300)
+        let newTempo = min(max(tempoAtCursor + amount, 30), 1000)
         recordUndoPoint()
         if cursorIndex > 0, tokens[cursorIndex - 1].kind == .tempo {
             let markerIndex = cursorIndex - 1
