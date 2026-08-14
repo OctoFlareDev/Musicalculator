@@ -12,7 +12,7 @@ Musicalculator is a SwiftUI iOS calculator that turns keypad input into playable
 - **Sharp notes:** hold `.` while pressing a note or audible operator to shift it up one semitone.
 - **Compressed rests:** consecutive blanks share one cell and display a small `×N` count.
 - **Undo and redo:** available from the expandable editor controls.
-- **Saved songs:** name, save, reopen, play, and delete compositions.
+- **Saved songs:** name, save, save as, reopen, play, and delete compositions.
 - **Calculator:** standard arithmetic with the same musical button feedback.
 - **Silent-mode audio:** uses an iOS playback audio session, so sounds play while the mute switch is enabled.
 - **Low-latency playback:** MP3s are decoded at launch and played through a pre-warmed voice pool.
@@ -49,7 +49,7 @@ The leading toolbar menu is a native floating menu with:
 - **My Files** — shows saved compositions
 - **Calculator** — opens the standard calculator
 
-When a composition contains playable events, Play/Stop and Save controls appear in the trailing navigation bar.
+When a composition contains playable events, Play/Stop and Save controls appear in the trailing navigation bar. Opening or saving a named file shows that name in the title bar. Tapping **Save** writes back to the current file; long-pressing **Save** opens **Save As** and creates a new file.
 
 ## Audio
 
@@ -64,7 +64,7 @@ Playback is built with `AVAudioEngine` and `AVAudioUnitTimePitch`:
 
 ## Persistence
 
-Saved songs are encoded with `Codable` and stored in `UserDefaults`. Each file includes its sequence tokens and inline tempo events. Tempo is not stored as one global song setting.
+Saved songs are encoded with `Codable` and stored in `UserDefaults`. Each file includes its sequence tokens and inline tempo events. Tempo is not stored as one global song setting. Saving an already-open file updates that same stored item instead of creating a duplicate.
 
 ## Requirements
 

@@ -32,6 +32,8 @@ struct ContentView: View {
     @State private var composerDragStart: CGFloat?
     @State private var showSavePrompt = false
     @State private var songName = ""
+    @State private var currentSongID: SavedSong.ID?
+    @State private var currentSongName: String?
     @State private var calculator = CalculatorState()
     @State private var composerToolsExpanded = false
     @State private var tempoEditing = false
@@ -41,7 +43,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             screenContent
-                .navigationTitle(screen == .play ? "Musicalculator" : screen.rawValue)
+                .navigationTitle(titleBarTitle)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { titleBarActions }
         }
@@ -50,8 +52,7 @@ struct ContentView: View {
             TextField("Song name", text: $songName)
             Button("Cancel", role: .cancel) { songName = "" }
             Button("Save") {
-                library.save(name: songName, tokens: tokens)
-                songName = ""
+                saveAsNamedSong()
             }
             .disabled(songName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         } message: {
@@ -87,7 +88,7 @@ struct ContentView: View {
             .accessibilityLabel("Open navigation panel")
         }
 
-        if screen == .play && tokens.contains(where: { $0.kind == .note || $0.kind == .symbol }) {
+        if screen == .play && hasPlayableTokens {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
                     togglePlayback()
@@ -96,14 +97,24 @@ struct ContentView: View {
                 }
                 .accessibilityLabel(audio.isPlayingSequence ? "Stop song" : "Play song")
 
-                Button {
-                    showSavePrompt = true
-                } label: {
-                    Image(systemName: "square.and.arrow.down")
-                }
-                .accessibilityLabel("Save song")
+                SaveToolbarButton(
+                    onSave: saveCurrentSong,
+                    onSaveAs: promptSaveAs
+                )
+                .frame(width: 44, height: 44)
             }
         }
+    }
+
+    private var titleBarTitle: String {
+        if screen == .play, let currentSongName, !currentSongName.isEmpty {
+            return currentSongName
+        }
+        return screen == .play ? "Musicalculator" : screen.rawValue
+    }
+
+    private var hasPlayableTokens: Bool {
+        tokens.contains(where: { $0.kind == .note || $0.kind == .symbol })
     }
 
     @ViewBuilder
@@ -298,12 +309,7 @@ struct ContentView: View {
                             }
                             Spacer()
                             Button("Open") {
-                                tokens = song.tokens
-                                cursorIndex = song.tokens.count
-                                captureEnabled = true
-                                undoStack = []
-                                redoStack = []
-                                screen = .play
+                                open(song)
                             }
                             .buttonStyle(.borderless)
                             .foregroundStyle(.tint)
@@ -311,7 +317,7 @@ struct ContentView: View {
                         .padding(.vertical, 7)
                         .listRowBackground(Color(uiColor: .secondarySystemGroupedBackground))
                     }
-                    .onDelete(perform: library.delete)
+                    .onDelete(perform: deleteSongs)
                 }
                 .scrollContentBackground(.hidden)
             }
@@ -434,16 +440,63 @@ struct ContentView: View {
         }
     }
 
+    private func saveCurrentSong() {
+        guard hasPlayableTokens else { return }
+        guard let currentSongID, let savedSong = library.update(id: currentSongID, tokens: tokens) else {
+            promptSaveAs()
+            return
+        }
+        currentSongName = savedSong.name
+    }
+
+    private func promptSaveAs() {
+        songName = currentSongName ?? ""
+        showSavePrompt = true
+    }
+
+    private func saveAsNamedSong() {
+        guard let savedSong = library.save(name: songName, tokens: tokens) else { return }
+        currentSongID = savedSong.id
+        currentSongName = savedSong.name
+        songName = ""
+    }
+
+    private func open(_ song: SavedSong) {
+        audio.stopSequence()
+        tokens = song.tokens
+        cursorIndex = song.tokens.count
+        currentSongID = song.id
+        currentSongName = song.name
+        captureEnabled = true
+        undoStack = []
+        redoStack = []
+        screen = .play
+    }
+
     private func startNewSong() {
         audio.stopSequence()
         tokens.removeAll()
         cursorIndex = 0
+        currentSongID = nil
+        currentSongName = nil
         undoStack.removeAll()
         redoStack.removeAll()
         captureEnabled = false
         composerToolsExpanded = false
         tempoEditing = false
         screen = .play
+    }
+
+    private func deleteSongs(at offsets: IndexSet) {
+        let deletedCurrentSong = offsets.contains { index in
+            guard library.songs.indices.contains(index) else { return false }
+            return library.songs[index].id == currentSongID
+        }
+        library.delete(at: offsets)
+        if deletedCurrentSong {
+            currentSongID = nil
+            currentSongName = nil
+        }
     }
 
     private func recordUndoPoint() {
@@ -623,6 +676,66 @@ private struct CursorIndicator: View {
             .fill(isActive ? Color.accentColor : Color.secondary.opacity(0.35))
             .frame(width: isActive ? 3 : 1)
             .padding(.vertical, 6)
+    }
+}
+
+private struct SaveToolbarButton: UIViewRepresentable {
+    let onSave: () -> Void
+    let onSaveAs: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onSave: onSave, onSaveAs: onSaveAs)
+    }
+
+    func makeUIView(context: Context) -> UIButton {
+        let button = ToolbarIconButton(type: .system)
+        button.setImage(UIImage(systemName: "square.and.arrow.down"), for: .normal)
+        button.accessibilityLabel = "Save song"
+        button.addTarget(context.coordinator, action: #selector(Coordinator.tapSave), for: .touchUpInside)
+
+        let longPress = UILongPressGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.longPressSaveAs(_:))
+        )
+        longPress.minimumPressDuration = 0.45
+        button.addGestureRecognizer(longPress)
+        return button
+    }
+
+    func updateUIView(_ button: UIButton, context: Context) {
+        context.coordinator.onSave = onSave
+        context.coordinator.onSaveAs = onSaveAs
+    }
+
+    final class Coordinator: NSObject {
+        var onSave: () -> Void
+        var onSaveAs: () -> Void
+        private var handledLongPress = false
+
+        init(onSave: @escaping () -> Void, onSaveAs: @escaping () -> Void) {
+            self.onSave = onSave
+            self.onSaveAs = onSaveAs
+        }
+
+        @objc func tapSave() {
+            guard !handledLongPress else {
+                handledLongPress = false
+                return
+            }
+            onSave()
+        }
+
+        @objc func longPressSaveAs(_ recognizer: UILongPressGestureRecognizer) {
+            guard recognizer.state == .began else { return }
+            handledLongPress = true
+            onSaveAs()
+        }
+    }
+
+    final class ToolbarIconButton: UIButton {
+        override var intrinsicContentSize: CGSize {
+            CGSize(width: 44, height: 44)
+        }
     }
 }
 

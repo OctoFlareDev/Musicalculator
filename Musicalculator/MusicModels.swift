@@ -87,11 +87,26 @@ final class SongLibrary: ObservableObject {
         songs = decoded
     }
 
-    func save(name: String, tokens: [MusicToken]) {
+    @discardableResult
+    func save(name: String, tokens: [MusicToken]) -> SavedSong? {
         let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanName.isEmpty, !tokens.isEmpty else { return }
-        songs.insert(SavedSong(name: cleanName, tokens: tokens), at: 0)
+        guard !cleanName.isEmpty, !tokens.isEmpty else { return nil }
+        let song = SavedSong(name: cleanName, tokens: tokens)
+        songs.insert(song, at: 0)
         persist()
+        return song
+    }
+
+    @discardableResult
+    func update(id: SavedSong.ID, tokens: [MusicToken]) -> SavedSong? {
+        guard !tokens.isEmpty, let index = songs.firstIndex(where: { $0.id == id }) else { return nil }
+        var song = songs[index]
+        song.tokens = tokens
+        song.savedAt = Date()
+        songs.remove(at: index)
+        songs.insert(song, at: 0)
+        persist()
+        return song
     }
 
     func delete(at offsets: IndexSet) {
