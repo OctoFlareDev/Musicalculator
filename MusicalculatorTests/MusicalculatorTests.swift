@@ -6,9 +6,37 @@
 //
 
 import Testing
+import CoreGraphics
 @testable import Musicalculator
 
 struct MusicalculatorTests {
+    @Test func portraitCompositionSizeSurvivesACompactLayout() {
+        let portrait = CompositionLayoutMetrics(size: CGSize(width: 650, height: 900), hasActiveDivision: false)
+        let outerDisplay = CompositionLayoutMetrics(size: CGSize(width: 390, height: 480), hasActiveDivision: false)
+        let preferredHeight: CGFloat = 310
+
+        #expect(portrait.composerHeight(preferred: preferredHeight) == preferredHeight)
+        #expect(outerDisplay.composerHeight(preferred: preferredHeight) < preferredHeight)
+        #expect(portrait.composerHeight(preferred: preferredHeight) == preferredHeight)
+        #expect(!portrait.isLocked)
+    }
+
+    @Test func foldAndWideLayoutsDisableManualResizing() {
+        let wide = CGSize(width: 900, height: 650)
+        let tall = CGSize(width: 650, height: 900)
+        #expect(CompositionLayoutMetrics(size: wide, hasActiveDivision: false).isLocked)
+        #expect(CompositionLayoutMetrics(size: wide, hasActiveDivision: true).isLocked)
+        #expect(CompositionLayoutMetrics(size: tall, hasActiveDivision: true).isLocked)
+        #expect(!CompositionLayoutMetrics(size: tall, hasActiveDivision: false).isLocked)
+    }
+
+    @Test(arguments: [400.0, 480.0, 600.0, 900.0])
+    func compactLayoutLeavesRoomForFourKeyRows(height: Double) {
+        let metrics = CompositionLayoutMetrics(size: CGSize(width: 390, height: height), hasActiveDivision: false)
+        let keypadHeight = height - metrics.composerHeight(preferred: 700) - 56
+        #expect(keypadHeight >= 4 * 44)
+    }
+
     @Test func sharpNoteUsesOneToken() {
         let token = MusicToken.note(5, sharp: true)
         #expect(token.displayText == ".5")

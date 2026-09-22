@@ -43,7 +43,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             screenContent
-                .navigationTitle(titleBarTitle)
+                .modifier(AdaptiveNavigationTitle(title: titleBarTitle))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { titleBarActions }
         }
@@ -62,7 +62,7 @@ struct ContentView: View {
 
     @ToolbarContentBuilder
     private var titleBarActions: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
+        ToolbarItem(id: "navigation", placement: .topBarLeading) {
             Menu {
                 Button {
                     startNewSong()
@@ -83,25 +83,37 @@ struct ContentView: View {
                     }
                 }
             } label: {
-                Image(systemName: "line.3.horizontal")
+                Label("Open navigation panel", systemImage: "line.3.horizontal")
             }
-            .accessibilityLabel("Open navigation panel")
+            .accessibilityIdentifier("navigationMenu")
         }
 
         if screen == .play && hasPlayableTokens {
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItem(id: "playback", placement: .topBarTrailing) {
                 Button {
                     togglePlayback()
                 } label: {
-                    Image(systemName: audio.isPlayingSequence ? "stop.fill" : "play.fill")
+                    Label(audio.isPlayingSequence ? "Stop song" : "Play song",
+                          systemImage: audio.isPlayingSequence ? "stop.fill" : "play.fill")
                 }
                 .accessibilityLabel(audio.isPlayingSequence ? "Stop song" : "Play song")
+                .accessibilityIdentifier("playbackButton")
+            }
 
-                SaveToolbarButton(
-                    onSave: saveCurrentSong,
-                    onSaveAs: promptSaveAs
-                )
-                .frame(width: 44, height: 44)
+            ToolbarItem(id: "save", placement: .topBarTrailing) {
+                // Give the system native actions and label metadata when rehosting
+                // horizontal/vertical bars, without a hosted UIButton or gesture state.
+                Menu {
+                    Button(action: promptSaveAs) {
+                        Label("Save As…", systemImage: "square.and.arrow.down.on.square")
+                    }
+                    .accessibilityIdentifier("saveAsAction")
+                } label: {
+                    Label("Save song", systemImage: "square.and.arrow.down")
+                } primaryAction: {
+                    saveCurrentSong()
+                }
+                .accessibilityIdentifier("saveSongButton")
             }
         }
     }
@@ -130,28 +142,16 @@ struct ContentView: View {
     }
 
     private var playScreen: some View {
-        GeometryReader { geometry in
-            let maximumComposerHeight = max(190, geometry.size.height - 340)
-
-            VStack(spacing: 0) {
-                composer
-                    .frame(height: min(composerHeight, maximumComposerHeight))
-                    .padding(.horizontal, 10)
-                    .padding(.top, 8)
-
-                resizeHandle(maximumHeight: maximumComposerHeight)
-
-                MusicalKeypad(
-                    dotHeld: $sharpHeld,
-                    onKey: handlePlayKey,
-                    showCalculatorOperators: false
-                )
-                .padding(.horizontal, 10)
-                .padding(.bottom, 8)
-            }
-            .onChange(of: geometry.size.height) { _, _ in
-                composerHeight = min(composerHeight, maximumComposerHeight)
-            }
+        AdaptiveCompositionLayout(composerHeight: composerHeight) {
+            composer
+        } keypad: {
+            MusicalKeypad(
+                dotHeld: $sharpHeld,
+                onKey: handlePlayKey,
+                showCalculatorOperators: false
+            )
+        } resizeHandle: { maximumHeight in
+            resizeHandle(maximumHeight: maximumHeight)
         }
         .background(LiquidBackdrop())
     }
@@ -676,66 +676,6 @@ private struct CursorIndicator: View {
             .fill(isActive ? Color.accentColor : Color.secondary.opacity(0.35))
             .frame(width: isActive ? 3 : 1)
             .padding(.vertical, 6)
-    }
-}
-
-private struct SaveToolbarButton: UIViewRepresentable {
-    let onSave: () -> Void
-    let onSaveAs: () -> Void
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onSave: onSave, onSaveAs: onSaveAs)
-    }
-
-    func makeUIView(context: Context) -> UIButton {
-        let button = ToolbarIconButton(type: .system)
-        button.setImage(UIImage(systemName: "square.and.arrow.down"), for: .normal)
-        button.accessibilityLabel = "Save song"
-        button.addTarget(context.coordinator, action: #selector(Coordinator.tapSave), for: .touchUpInside)
-
-        let longPress = UILongPressGestureRecognizer(
-            target: context.coordinator,
-            action: #selector(Coordinator.longPressSaveAs(_:))
-        )
-        longPress.minimumPressDuration = 0.45
-        button.addGestureRecognizer(longPress)
-        return button
-    }
-
-    func updateUIView(_ button: UIButton, context: Context) {
-        context.coordinator.onSave = onSave
-        context.coordinator.onSaveAs = onSaveAs
-    }
-
-    final class Coordinator: NSObject {
-        var onSave: () -> Void
-        var onSaveAs: () -> Void
-        private var handledLongPress = false
-
-        init(onSave: @escaping () -> Void, onSaveAs: @escaping () -> Void) {
-            self.onSave = onSave
-            self.onSaveAs = onSaveAs
-        }
-
-        @objc func tapSave() {
-            guard !handledLongPress else {
-                handledLongPress = false
-                return
-            }
-            onSave()
-        }
-
-        @objc func longPressSaveAs(_ recognizer: UILongPressGestureRecognizer) {
-            guard recognizer.state == .began else { return }
-            handledLongPress = true
-            onSaveAs()
-        }
-    }
-
-    final class ToolbarIconButton: UIButton {
-        override var intrinsicContentSize: CGSize {
-            CGSize(width: 44, height: 44)
-        }
     }
 }
 

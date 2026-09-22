@@ -49,7 +49,7 @@ The leading toolbar menu is a native floating menu with:
 - **My Files** — shows saved compositions
 - **Calculator** — opens the standard calculator
 
-When a composition contains playable events, Play/Stop and Save controls appear in the trailing navigation bar. Opening or saving a named file shows that name in the title bar. Tapping **Save** writes back to the current file; long-pressing **Save** opens **Save As** and creates a new file.
+When a composition contains playable events, Play/Stop and Save controls appear in the trailing navigation bar. Opening or saving a named file shows that name in the title bar. Tapping **Save** writes back to the current file; long-pressing **Save** shows a native menu with **Save As…** to create a new file.
 
 ## Audio
 
@@ -68,9 +68,25 @@ Saved songs are encoded with `Codable` and stored in `UserDefaults`. Each file i
 
 ## Requirements
 
-- macOS with Xcode and the iOS 26.5 SDK
+- macOS with Xcode 27.1 or later and the iOS 27.1 SDK or later
 - iOS 26.5 or later
 - Swift 5
+
+## iPhone Duo layouts
+
+On iOS 27.1 and later, the composer and keypad share a native SwiftUI `ArrangementView`:
+
+- Wide layouts place the composer on the left and keypad on the right, with manual resizing disabled.
+- Unfolded portrait retains the adjustable composer height. Folding locks the split and lets the system place both panels clear of its reserved hinge region.
+- Returning to unfolded portrait restores the preferred composer height instead of retaining a compact display's temporary height limit.
+- Pose changes use standard SwiftUI animations and honor Reduce Motion. Direct handle dragging remains unanimated.
+- The title is hidden when the system uses a vertical toolbar (including outer portrait and inner landscape), and in compact vertical size classes. Navigation, playback, and saving remain available.
+
+The system handles split placement and asymmetric safe areas; the app does not infer a hinge from screen dimensions or device names. iOS 26.5 retains the stacked layout.
+
+Design references: Apple's [Design for iPhone Duo](https://developer.apple.com/videos/play/tech-talks/111466/), [adaptive layout demo](https://developer.apple.com/videos/play/tech-talks/111463/), and [toolbar guidance](https://developer.apple.com/videos/play/tech-talks/111462/).
+
+To check in Device Hub, exercise outer portrait, inner landscape (flat and folded), and inner portrait (flat and folded). Resize the composer before switching poses, verify that its height returns in flat portrait, and confirm that note entry, playback, and the Save button continue working. Also check Reduce Motion and Split View resizing.
 
 ## Build and run
 
@@ -92,7 +108,7 @@ xcodebuild \
 
 ## Tests
 
-The test suite covers sequence tokens, sharp symbols, tempo timing, calculator behavior, and audio-graph startup.
+The test suite covers sequence tokens, sharp symbols, tempo timing, calculator behavior, audio-graph startup, and compact layout sizing. The toolbar UI regression repeatedly rotates the device and exercises navigation, Save As, and the first Save tap after a long press. Repeated physical fold/unfold transitions still require the Device Hub pose controls.
 
 ```sh
 xcodebuild \
